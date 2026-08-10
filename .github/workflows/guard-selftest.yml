@@ -1,0 +1,79 @@
+# Public repo (GitHub-hosted CI) — runs the vendored guard's own self-tests on every PR, so a
+# broken or un-cabled guard is caught in CI instead of silently failing open on a contributor's
+# machine. Deliberately standalone (separate from the preset-validation CI): the guard is a
+# zero-dependency plain-node script, so this only needs Node — no renovate toolchain.
+name: Guard self-test
+
+on:
+  pull_request:
+
+# PR-only workflow: coalesce superseded runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  guard-selftest:
+    name: guard-selftest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      # Node only: the guard extracts the tool-call JSON via `node -e` (no jq, no deps), so a
+      # lightweight setup-node reusing the repo's .nvmrc is all the self-tests need.
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: bash-guard self-test (expect OK 100/100)
+        shell: bash
+        run: |
+          set +e
+          out="$(bash scripts/hooks/bash-guard.test.sh)"
+          rc=$?
+          echo "$out"
+          if [ "$rc" -ne 0 ]; then echo "::error::bash-guard self-test exited $rc"; exit 1; fi
+          echo "$out" | grep -q 'OK: 100/100' || {
+            echo '::error::bash-guard self-test did not report OK: 100/100'
+            exit 1
+          }
+
+      # Liveness: prove the guard actually DENIES a forbidden action end-to-end — not merely that
+      # its unit tests pass. A push targeting main from a feature branch must exit 2. If the wiring
+      # drifts (e.g. the guard silently starts failing open) this turns red.
+      - name: Liveness — push-to-main is denied (exit 2)
+        shell: bash
+        run: |
+          set +e
+          printf '%s' '{"tool_name":"Bash","tool_input":{"command":"git push origin main"}}' \
+            | BASH_GUARD_BRANCH=feature/1-x bash scripts/hooks/bash-guard.sh
+          rc=$?
+          if [ "$rc" -ne 2 ]; then
+            echo "::error::bash-guard did not deny push-to-main (expected exit 2, got $rc)"
+            exit 1
+          fi
+          echo 'OK: bash-guard denied push-to-main with exit 2'
+
+      # Wiring: a guard that passes its tests but is not cabled into the agent runtime is dead
+      # code. Assert the hook config invokes bash-guard as a PreToolUse Bash hook.
+      - name: Wiring — settings.json cables bash-guard
+        shell: bash
+        run: |
+          node -e '
+            const fs = require("fs");
+            const s = JSON.parse(fs.readFileSync(".claude/settings.json", "utf8"));
+            const pre = (s.hooks && s.hooks.PreToolUse) || [];
+            const cabled = pre.some((g) =>
+              (g.matcher || "").split("|").includes("Bash") &&
+              (g.hooks || []).some((h) => typeof h.command === "string" && h.command.includes("bash-guard.sh")));
+            if (!cabled) {
+              console.error("::error::.claude/settings.json PreToolUse must cable bash-guard.sh as a Bash hook");
+              process.exit(1);
+            }
+            console.log("OK: settings.json cables bash-guard.sh as a PreToolUse Bash hook");
+          '

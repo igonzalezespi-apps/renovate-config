@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "This repo maintains its OWN toolchain, narrowly. It used to carry `enabled: false` (2026-06-03), which kept Renovate off it entirely — and the cost was measurable: its workflow actions drifted for months with nobody to notice.",
+    "The scope is deliberately narrow via `enabledManagers`: only `github-actions` and the custom manager below. `default.json` is the preset that the consumer repos extend UNPINNED from this branch, so main is production for them — it must never be moved by a bot. That holds twice over: no Renovate manager matches `default.json` at all, and `enabledManagers` excludes the `renovate-config` manager that would otherwise match this very file.",
+    "Everything is `automerge: false`. The single control is the packageRule below — `platformAutomerge` is NOT a guardrail, it only decides who performs the merge, not whether one happens. Drop that rule and the shared preset's automerge for patch/pin/digest comes back, on a branch that is production for every consumer.",
+    "The custom manager exists because the gate that protects the preset was itself unmaintained: ci.yml pins the validator with `npm install -g renovate@<version>`, and that pin sat a full major behind. A stale validator is a gate that has stopped seeing new rejections — so the thing that checks production now gets its own dependency PR."
+  ],
+  "extends": [
+    "github>igonzalezespi/renovate-config"
+  ],
+  "baseBranchPatterns": [
+    "main"
+  ],
+  "enabledManagers": [
+    "github-actions",
+    "custom.regex"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Keep the pinned renovate-config-validator in ci.yml current — it is the only gate over a preset the consumer repos extend unpinned.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "npm install -g renovate@(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "renovate",
+      "datasourceTemplate": "npm"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "main is production for every consumer repo: each bump here gets human eyes.",
+      "matchPackageNames": [
+        "*"
+      ],
+      "automerge": false
+    }
+  ]
+}

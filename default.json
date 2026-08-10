@@ -1,0 +1,154 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Studio-wide Renovate base preset (igonzalezespi). Every consumer repo's renovate.json extends `github>igonzalezespi/renovate-config`. Dependency PRs target `develop`, Conventional `chore(deps)` commits. Repo-specific version-holds and overrides live in each repo's own renovate.json and are merged on top of this one.",
+    "SINGLE-WRITER MODEL (2026-08-02): GitHub *detects* (Dependency graph + Dependabot alerts, enabled per repo via `PUT /repos/{owner}/{repo}/vulnerability-alerts`), Renovate is the *only* bot that opens PRs. Dependabot security updates (`automated-security-fixes`) stay OFF and no repo carries a `.github/dependabot.yml`. Renovate NEEDS those alerts for `vulnerabilityAlerts` to fire — it consumes them and opens the PRs itself. Two bots writing the same manifests produce duplicate PRs per CVE, cross-branch lockfile conflicts and competing automerges. See README.md.",
+    "Supply chain (2026-08-02): `minimumReleaseAge` holds every ordinary dependency PR for a 7-day cooldown, so a version that is yanked or found malicious in its first days never reaches a repo. It is the cheap defence against the compromised-release pattern (a package publishing a malicious version that is pulled hours later). `internalChecksFilter: strict` withholds the PR until the cooldown is met instead of opening it pending.",
+    "The cooldown is overridden back to `minimumReleaseAge: null` inside `vulnerabilityAlerts` ON PURPOSE — it is Renovate's default there, and stated explicitly so nobody 'tidies it away': a fix for a known CVE must not wait out the cooldown, which would invert the control into a delay on exactly the update that must land fastest. Those PRs also get `prCreation: immediate` and bypass the rate limits. `osvVulnerabilityAlerts` adds the OSV feed, which covers DIRECT dependencies only — it complements the GitHub alerts, it does not replace them.",
+    "Transitive dependencies are covered by `lockFileMaintenance`, not by the ordinary PRs (those bump direct deps). Its schedule is a cron window spanning the whole of Monday: the legacy `later` syntax reads well but a narrow window risks the bot run never landing inside it, and a PR that is never created cannot automerge. `prPriority` for it lives in packageRules — Renovate rejects it inside `lockFileMaintenance`.",
+    "Automerge (decision 2026-08-02, superseding the 2026-06-05 'only Ivan merges' posture): patch/pin/digest and lockFileMaintenance merge themselves once checks are green. Majors, and minors of 0.x packages, are gated behind a Dependency Dashboard tick. `automergeStrategy: squash` matches the studio rule that bot PRs land squashed; a repo whose settings disallow squash overrides it in its own renovate.json.",
+    "Each PR is auto-labelled with exactly one `semver:major|minor|patch` by update type (2026-06-09) so the release-mechanism's require-semver-label gate passes on bot PRs and the develop->main version bump is computed correctly from merged dependency PRs.",
+    "`toolSettings.nodeMaxMemory` (2026-08-02): the largest consumer repo was running OUT OF MEMORY during Renovate's lockfile refresh. Renovate shells out to the package manager to regenerate a lockfile, and by default that child Node process 'automagically determines' its own heap limit; a large pnpm workspace exceeds it and the run dies. The failure mode is SILENCE — a run that dies mid-lockfile produces no PR, so the bot looks like it has nothing to say, which is indistinguishable from everything being up to date. Value is in MiB (2048 = 2 GiB), matching the setting already proven on the downstream repo that hit this first. It applies to the `npm` manager family only (npm/yarn/pnpm) — it is read in the npm post-update path, including the pnpm one — so in a Flutter/Gradle repo the equivalent knob is `toolSettings.jvmMaxMemory`, not this. Set fleet-wide from here rather than per repo: the repo that needs it today is not the one that will need it next, and a per-repo fix has to be rediscovered every time. Repo-level option, verified against the shipped option definitions: it carries no `globalOnly` flag, and its own description says global self-hosted config merely takes precedence — so the hosted app honours it."
+  ],
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    "group:monorepos"
+  ],
+  "timezone": "Europe/Madrid",
+  "schedule": [
+    "* * * * 1"
+  ],
+  "baseBranchPatterns": [
+    "develop"
+  ],
+  "labels": [
+    "deps"
+  ],
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "osvVulnerabilityAlerts": true,
+  "rangeStrategy": "bump",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "platformAutomerge": false,
+  "automergeStrategy": "squash",
+  "toolSettings": {
+    "nodeMaxMemory": 2048
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": [
+      "* * * * 1"
+    ]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": [
+      "deps",
+      "security"
+    ],
+    "minimumReleaseAge": null
+  },
+  "packageRules": [
+    {
+      "description": "Patch-class updates: automerge once checks are green + label semver:patch for the release-mechanism gate",
+      "matchUpdateTypes": [
+        "patch",
+        "pin",
+        "digest",
+        "bump",
+        "rollback",
+        "pinDigest"
+      ],
+      "automerge": true,
+      "addLabels": [
+        "semver:patch"
+      ]
+    },
+    {
+      "description": "Minor updates: human review + label semver:minor",
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "semver:minor"
+      ]
+    },
+    {
+      "description": "Major updates: gated behind a Dependency Dashboard tick, then human review + label semver:major",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "dependencyDashboardApproval": true,
+      "addLabels": [
+        "semver:major"
+      ]
+    },
+    {
+      "description": "Pre-1.0 packages treat a minor as breaking, so gate 0.x minors behind the dashboard as well",
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Lock-file maintenance keeps the transitive tree current, so it jumps the queue ahead of the ordinary updates. Label semver:patch (a relock is a patch-class change for the release gate).",
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "prPriority": 10,
+      "addLabels": [
+        "semver:patch"
+      ]
+    },
+    {
+      "description": "Group GitHub Actions and keep them pinned to SHA",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github-actions",
+      "groupSlug": "github-actions",
+      "pinDigests": true
+    },
+    {
+      "description": "Group non-major npm updates into one PR",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "npm non-major",
+      "groupSlug": "npm-non-major"
+    },
+    {
+      "description": "HOLD pnpm majors: pnpm 10 is the deliberate studio standard; majors are a coordinated decision, never an automatic dependency PR. Bump it studio-wide on purpose, not because Renovate opened a PR.",
+      "matchDepNames": [
+        "pnpm"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "HOLD typescript majors: TS majors land studio-wide together with @studio/tsconfig peers (Wave D), not piecemeal per repo. Hold the automatic PR; the major is a coordinated rollout.",
+      "matchDepNames": [
+        "typescript"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    }
+  ]
+}
