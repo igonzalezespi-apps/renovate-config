@@ -1,7 +1,7 @@
 # renovate-config
 
 Shared **Renovate presets** for the maintainer's repos. Public (MIT). Consumed via
-`"extends": ["github>igonzalezespi/renovate-config"]` (or `:default`), so `default.json` is a
+`"extends": ["github>igonzalezespi-apps/renovate-config"]` (or `:default`), so `default.json` is a
 public API: a change to it affects every consumer's dependency automation.
 
 > Self-contained contract — the studio-wide company layer is enumerated below, and is also
