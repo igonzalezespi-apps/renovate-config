@@ -18,7 +18,7 @@
   ],
   "timezone": "Europe/Madrid",
   "schedule": [
-    "* * * * 1"
+    "before 6am on tuesday"
   ],
   "baseBranchPatterns": [
     "develop"
@@ -43,7 +43,7 @@
     "enabled": true,
     "automerge": true,
     "schedule": [
-      "* * * * 1"
+      "before 6am on tuesday"
     ]
   },
   "vulnerabilityAlerts": {
