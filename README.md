@@ -63,7 +63,7 @@ Each consumer repo's `renovate.json`:
 ```json
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>igonzalezespi/renovate-config"]
+  "extends": ["github>igonzalezespi-apps/renovate-config"]
 }
 ```
 

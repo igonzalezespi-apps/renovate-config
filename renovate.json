@@ -7,7 +7,7 @@
     "The custom manager exists because the gate that protects the preset was itself unmaintained: ci.yml pins the validator with `npm install -g renovate@<version>`, and that pin sat a full major behind. A stale validator is a gate that has stopped seeing new rejections — so the thing that checks production now gets its own dependency PR."
   ],
   "extends": [
-    "github>igonzalezespi/renovate-config"
+    "github>igonzalezespi-apps/renovate-config"
   ],
   "baseBranchPatterns": [
     "main"
