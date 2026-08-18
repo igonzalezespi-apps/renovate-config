@@ -1,0 +1,29 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Profile for the studio's trunk->main repos (the public config repos and the tooling repos). Extends the company default and overrides only what trunk->main changes: the base branch, and a more conservative automerge posture (nothing automerges by default; devDependency patch/minor and GitHub Actions patch/minor/digest do).",
+    "It exists because six repos carried `baseBranchPatterns: [main]` verbatim and three of them carried a byte-identical trio of automerge rules. Consume it with `extends: [github>igonzalezespi-apps/renovate-config:config-repo]` INSTEAD OF the default preset - this file already extends it."
+  ],
+  "extends": ["github>igonzalezespi-apps/renovate-config"],
+  "baseBranchPatterns": ["main"],
+  "platformAutomerge": false,
+  "packageRules": [
+    {
+      "description": "Nothing automerges by default here; the two rules below opt specific classes back in.",
+      "matchPackageNames": ["*"],
+      "automerge": false
+    },
+    {
+      "description": "devDependency patch/minor automerges once checks are green.",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true
+    },
+    {
+      "description": "GitHub Actions patch/minor/digest automerge once checks are green.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "minor", "digest", "pinDigest"],
+      "automerge": true
+    }
+  ]
+}
