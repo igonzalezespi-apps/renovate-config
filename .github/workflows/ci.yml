@@ -31,7 +31,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('renovate.json','utf8'))"
 
       - name: Install pinned renovate validator
-        run: npm install -g renovate@44.23.3
+        run: npm install -g renovate@44.24.0
 
       - name: Validate default.json (strict)
         run: renovate-config-validator --strict default.json
