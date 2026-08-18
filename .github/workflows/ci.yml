@@ -25,16 +25,33 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: JSON parse sanity check
-        run: |
-          node -e "JSON.parse(require('fs').readFileSync('default.json','utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('renovate.json','utf8'))"
-
       - name: Install pinned renovate validator
         run: npm install -g renovate@44.24.0
 
-      - name: Validate default.json (strict)
-        run: renovate-config-validator --strict default.json
-
-      - name: Validate renovate.json (strict)
-        run: renovate-config-validator --strict renovate.json
+      # Glob, NOT a list of names. This step used to name default.json and renovate.json
+      # one by one, so the day a THIRD preset file was added it would have shipped
+      # unvalidated — the gate would still be green while covering less than it claimed.
+      # Found exactly that way while adding config-repo.json.
+      - name: Validate every preset file (strict)
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=()
+          for f in *.json; do
+            case "$f" in
+              package.json|package-lock.json|tsconfig.json) continue ;;
+            esac
+            files+=("$f")
+          done
+          # Zero files is a broken invocation, never a pass: it is how a check that stopped
+          # looking at anything goes green.
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::no preset files matched — this is a broken check, not a pass"
+            exit 1
+          fi
+          echo "validando: ${files[*]}"
+          for f in "${files[@]}"; do
+            node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$f"
+            renovate-config-validator --strict "$f"
+          done
