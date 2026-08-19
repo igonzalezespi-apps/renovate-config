@@ -30,22 +30,26 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: bash-guard self-test (expect OK 100/100)
-        shell: bash
+      - name: bash-guard self-test (all cases pass, suite never shrinks)
+        # The total is NOT hardcoded, and that is the whole point of this step's shape.
+        #
+        # It used to be `grep -q 'OK: 100/100'`. On 2026-08-14 the canonical guard gained three
+        # cases, the suite printed `OK: 103/103 cases pass` — a STRICTLY BETTER result — and this
+        # step failed. In four repos at once, because every one of them pinned the same number.
+        # An assertion that goes red when the thing it guards improves teaches you to ignore it.
+        #
+        # What is actually worth catching is the suite SHRINKING (cases deleted, harness truncated)
+        # or cases FAILING. So: `pass == total`, plus a floor. Adding cases stays green; removing
+        # them, or dropping below the floor, goes red. Raise the floor when it is worth ratcheting.
         run: |
-          set +e
-          out="$(bash scripts/hooks/bash-guard.test.sh)"
-          rc=$?
-          echo "$out"
-          if [ "$rc" -ne 0 ]; then echo "::error::bash-guard self-test exited $rc"; exit 1; fi
-          echo "$out" | grep -q 'OK: 100/100' || {
-            echo '::error::bash-guard self-test did not report OK: 100/100'
-            exit 1
-          }
+          set -o pipefail
+          bash scripts/hooks/bash-guard.test.sh | tee "$RUNNER_TEMP/bash-guard.out"
+          res=$(sed -nE 's/^OK: ([0-9]+)\/([0-9]+) cases pass.*/\1 \2/p' "$RUNNER_TEMP/bash-guard.out" | tail -1)
+          [ -n "$res" ] || { echo "::error::bash-guard self-test printed no result line at all"; exit 1; }
+          pass=${res% *}; total=${res#* }
+          [ "$pass" = "$total" ] || { echo "::error::bash-guard self-test: only $pass of $total cases pass"; exit 1; }
+          [ "$total" -ge 103 ] || { echo "::error::bash-guard self-test SHRANK to $total cases (floor is 103)"; exit 1; }
 
-      # Liveness: prove the guard actually DENIES a forbidden action end-to-end — not merely that
-      # its unit tests pass. A push targeting main from a feature branch must exit 2. If the wiring
-      # drifts (e.g. the guard silently starts failing open) this turns red.
       - name: Liveness — push-to-main is denied (exit 2)
         shell: bash
         run: |
