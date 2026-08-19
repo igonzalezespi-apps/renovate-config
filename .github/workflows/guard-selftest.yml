@@ -48,7 +48,7 @@ jobs:
           [ -n "$res" ] || { echo "::error::bash-guard self-test printed no result line at all"; exit 1; }
           pass=${res% *}; total=${res#* }
           [ "$pass" = "$total" ] || { echo "::error::bash-guard self-test: only $pass of $total cases pass"; exit 1; }
-          [ "$total" -ge 103 ] || { echo "::error::bash-guard self-test SHRANK to $total cases (floor is 103)"; exit 1; }
+          [ "$total" -ge 107 ] || { echo "::error::bash-guard self-test SHRANK to $total cases (floor is 107)"; exit 1; }
 
       - name: Liveness — push-to-main is denied (exit 2)
         shell: bash
