@@ -25,8 +25,14 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Install pinned renovate validator
-        run: npm install -g renovate@44.93.0
+      # The validator comes from package-lock.json, not from `npm install -g renovate@<v>`. That
+      # pinned renovate itself but let its ~600 transitive dependencies float on every run, which
+      # is why the fleet install-vector sweep flagged it. `npm ci` installs exactly the tree the
+      # lockfile names, each package checked against its integrity hash. Install scripts stay ON:
+      # without them RE2 is not built and the validator silently falls back to RegExp, accepting a
+      # lookbehind that Renovate itself rejects (measured 2026-09-22).
+      - name: Install the pinned validator from the lockfile
+        run: npm ci --no-audit --no-fund
 
       # Glob, NOT a list of names. This step used to name default.json and renovate.json
       # one by one, so the day a THIRD preset file was added it would have shipped
@@ -53,5 +59,5 @@ jobs:
           echo "validando: ${files[*]}"
           for f in "${files[@]}"; do
             node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$f"
-            renovate-config-validator --strict "$f"
+            npx --no-install renovate-config-validator --strict "$f"
           done
