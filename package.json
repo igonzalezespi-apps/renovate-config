@@ -3,6 +3,6 @@
   "private": true,
   "description": "Only the CI validator for the presets in this repo. Installed with npm ci, so every transitive dependency is pinned by integrity hash.",
   "devDependencies": {
-    "renovate": "44.93.2"
+    "renovate": "44.93.4"
   }
 }
