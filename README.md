@@ -98,9 +98,15 @@ will, and a config Renovate rejects is ignored **silently**.
 ## Validating a change
 
 CI does validate this repo: the `Validate Renovate preset` job runs
-`renovate-config-validator --strict` over **both** `default.json` and `renovate.json`, against a
-pinned `renovate@43.209.4`. That gate exists **only here** — the nine consumer repos do *not*
-validate their own `renovate.json` in CI, so a broken one there fails silently.
+`renovate-config-validator --strict` over every preset file (`*.json` except the npm manifests),
+with the `renovate` pinned in `package.json` and installed by `npm ci` from `package-lock.json` —
+so its whole transitive tree is pinned by integrity hash, and Renovate bumps it like any other
+dependency. That gate exists **only here** — the nine consumer repos do *not* validate their own
+`renovate.json` in CI, so a broken one there fails silently.
+
+> Until 2026-09-22 this said *"against a pinned `renovate@43.209.4`"*, while the workflow already
+> installed `44.93.0` with `npm install -g` — which pinned `renovate` but let ~600 transitive
+> packages float on every run. Re-measure with `jq -r .devDependencies.renovate package.json`.
 
 Two things worth knowing before trusting a green run:
 
