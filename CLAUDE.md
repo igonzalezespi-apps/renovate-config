@@ -1,60 +1,30 @@
 # renovate-config
 
-Shared **Renovate presets** for the maintainer's repos. Public (MIT). Consumed via
-`"extends": ["github>igonzalezespi-apps/renovate-config"]` (or `:default`), so `default.json` is a
-public API: a change to it affects every consumer's dependency automation.
-
-> Self-contained contract — the studio-wide company layer is enumerated below, and is also
-> injected at runtime by the `studio-policy` plugin when it is installed (see
-> `.claude/settings.json`). Nothing here inherits from a parent file, so it holds on a fork too.
+Shared **Renovate presets** for the maintainer's repos. Public (MIT). Consumers extend them
+**unpinned, from `main`**: `github>igonzalezespi-apps/renovate-config` (`default.json`) or
+`…:config-repo` (`config-repo.json`). So each preset is a public API, and **`main` is
+production**: every merge is live at once for every consumer's dependency automation.
 
 ## Rules
 
-- **Public repo — never name a private project.** Not in the JSON presets, docs, comments,
-  commit messages, PR bodies, hooks, or CI. Refer to the maintainer's other repos neutrally.
-  A local `pre-commit` guard (`.githooks/pre-commit`) enforces this against a private denylist;
-  enable it per clone with `git config core.hooksPath .githooks` (it is a no-op where the
-  denylist is absent, e.g. a fork).
-- **Agent command guard.** A vendored `scripts/hooks/bash-guard.sh` is cabled as a Claude Code
-  PreToolUse Bash hook (`.claude/settings.json`): a best-effort tripwire that denies pushing to
-  `main`, force-pushing a shared branch, `--no-verify`, agent merges, `.env` reads and non-local
-  network egress. It is **not** a security boundary and it fail-opens. It enforces from its
-  committed copy; refresh it from the canonical core via `bootstrap.sh` / `guard-sync` and
-  verify with `guard-verify` (parity + wiring + liveness).
-- **Nothing is enforced server-side.** The enforcement here is entirely local: the guard above
-  (in-session), the `.githooks/` hooks (`pre-commit`, `commit-msg`) once cabled per clone, and
-  CI, which **reports without blocking** — with no required status checks a red run does not
-  prevent a merge. Branch protection and rulesets are **deliberately not enabled** (verified:
-  `gh api repos/<owner>/<repo>/branches/main/protection` → `404`, `.../rulesets` → `[]`) — an
-  explicit decision, not an oversight. Enabling them is what would make a push to `main` or a
-  merge over a red check technically impossible instead of merely forbidden.
-- **Language / Idioma** — Reply to the user (Ivan) in **Spanish**; he reads Spanish and this
-  holds in every repo and session. Author the OpenSpec docs the user reads — `proposal.md`,
-  `design.md`, `tasks.md` — in **Spanish** too. Everything else stays **English**: source code,
-  comments, identifiers, this contract file's own text, skills/SKILL.md, agent prompts, and
-  OpenSpec **spec deltas** (`specs/**/spec.md`, which keep their `SHALL` / `WHEN`/`THEN` RFC2119
-  keyword format).
-- **Conventional Commits** — `type(scope): description` (`feat/fix/chore/docs/ci`).
-- **Branch flow: trunk → main, squash by convention.** PRs target `main` and land by **squash**:
-  every PR becomes ONE conventional commit whose message is the **PR title**, which drives the
-  computed changelog/version — so PR titles MUST be valid Conventional Commits. The repo settings
-  do **not** enforce it: all three merge methods are enabled (since 2026-08-25; verify with
-  `gh api repos/<owner>/<repo> --jq '[.allow_squash_merge,.allow_merge_commit,.allow_rebase_merge]'`
-  → `[true,true,true]`), and GitHub preselects the method used last, so choose **Squash**
-  explicitly (`gh pr merge <n> --squash`). The only sanctioned force-push is `--force-with-lease`
-  on your own PR branch.
-- **`main` is production.** Consumers extend these presets unpinned from the default branch, so
-  every merge to `main` is immediately live for all consumers — merge accordingly.
-- **No secrets committed** — placeholders only.
-- Treat `default.json` as a stable contract: validate JSON before committing, and prefer
-  additive/opt-in changes over ones that silently alter every consumer's behavior.
-- **Reserved to the maintainer** (escalate, do not decide): a breaking change to `default.json`'s
-  public contract, anything that edits this contract, opening a private repo to the public, and
-  spend/scope decisions.
+- **Public repo: never name a private project** — not in the presets, docs, comments, commit
+  messages, PR bodies, hooks or CI. Refer to the maintainer's other repos neutrally. The
+  `.githooks/` hooks enforce it against a private denylist (a no-op on a fork).
+- **Language:** reply to the maintainer in Spanish; code, comments and this file stay English.
+- **Branch flow: trunk → main, squash by convention.** This repo has no integration branch: PRs,
+  dependency PRs included (its own `renovate.json` pins `main`), target `main` and land by
+  **squash**, so the PR title becomes the commit and MUST be a valid Conventional Commit; every PR
+  also needs one `semver:*` label. All three merge methods are enabled and GitHub preselects the
+  last one used: choose squash explicitly (`gh pr merge <n> --squash`).
+- The guard policy here has `agent_may_merge: false`: an in-session agent cannot merge in this repo.
+- **Nothing is enforced server-side** (no branch protection, rulesets or required checks: a
+  standing decision). CI reports, it does not block; what stops a mistake is the vendored guard
+  in-session and the `.githooks/` hooks per clone. Run `bash bootstrap.sh` after cloning.
+- The company-wide rules come from the `studio-policy` plugin; this file keeps only what is
+  specific to this repo. Path rules load on demand: `.claude/rules/presets.md` (the presets and
+  their validation) and `.claude/rules/guard.md` (`scripts/hooks/`, `.githooks/`, `bootstrap.sh`).
 
-## Setup
+## Reserved to the maintainer (escalate, do not decide)
 
-- `bash bootstrap.sh` — installs the declared Claude Code plugins (`core-dev`, `studio-policy`)
-  and refreshes/verifies the vendored guard. Per-machine plugin install is separate; the vendored
-  guard in `scripts/hooks/` enforces regardless.
-- `git config core.hooksPath .githooks` — enable the private-reference pre-commit guard.
+A breaking change to a preset's public contract · edits to this contract · opening a private repo
+to the public · spend or scope decisions.
