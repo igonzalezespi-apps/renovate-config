@@ -1,15 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": [
-    "Profile for the studio's trunk->main repos (the public config repos and the tooling repos). Extends the company default and overrides only what trunk->main changes: the base branch, and a more conservative automerge posture (nothing automerges by default; devDependency patch/minor and GitHub Actions patch/minor/digest do).",
-    "It exists because six repos carried `baseBranchPatterns: [main]` verbatim and three of them carried a byte-identical trio of automerge rules. Consume it with `extends: [github>igonzalezespi-apps/renovate-config:config-repo]` INSTEAD OF the default preset - this file already extends it.",
+    "Profile for the studio's public config repos and tooling repos. Extends the company default and overrides ONE thing: a more conservative automerge posture (nothing automerges by default; devDependency patch/minor and GitHub Actions patch/minor/digest do). The base branch is deliberately NOT set here: it is inherited from the default preset, `develop`, because the repos that consume this profile integrate in `develop` and release `develop` -> `main`.",
+    "Do not re-pin the base branch here. Until 2026-09-30 this file carried `baseBranchPatterns: [main]`, from when its consumers were trunk->main. They moved to `develop` in late August 2026 and the pin outlived the move: for a month their dependency PRs opened against `main` and automerged there, skipping integration and putting `main` ahead of `develop`. A repo that really integrates in `main` (this one) pins `main` in its OWN renovate.json, which does not extend this profile.",
+    "It exists because three repos carried a byte-identical trio of automerge rules (and six carried the `main` pin that this file no longer holds). Consume it with `extends: [github>igonzalezespi-apps/renovate-config:config-repo]` INSTEAD OF the default preset - this file already extends it.",
     "Provenance, because absorbing a rule loses its history otherwise: the two automerge opt-ins below carried `Scoped automerge (decision 2026-08-01)` in each of the three repos this was hoisted from, and the catch-all carried `Everything defaults to human review.`. That decision is what this file now holds on their behalf — majors and anything not listed stay human."
   ],
   "extends": [
     "github>igonzalezespi-apps/renovate-config"
-  ],
-  "baseBranchPatterns": [
-    "main"
   ],
   "platformAutomerge": false,
   "packageRules": [

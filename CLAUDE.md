@@ -35,10 +35,14 @@ public API: a change to it affects every consumer's dependency automation.
   OpenSpec **spec deltas** (`specs/**/spec.md`, which keep their `SHALL` / `WHEN`/`THEN` RFC2119
   keyword format).
 - **Conventional Commits** — `type(scope): description` (`feat/fix/chore/docs/ci`).
-- **Branch flow: trunk → main, squash-only.** PRs target `main` and land by **squash** (enforced
-  by repo settings): every PR becomes ONE conventional commit whose message is the **PR title**,
-  which drives the computed changelog/version — so PR titles MUST be valid Conventional Commits.
-  The only sanctioned force-push is `--force-with-lease` on your own PR branch.
+- **Branch flow: trunk → main, squash by convention.** PRs target `main` and land by **squash**:
+  every PR becomes ONE conventional commit whose message is the **PR title**, which drives the
+  computed changelog/version — so PR titles MUST be valid Conventional Commits. The repo settings
+  do **not** enforce it: all three merge methods are enabled (since 2026-08-25; verify with
+  `gh api repos/<owner>/<repo> --jq '[.allow_squash_merge,.allow_merge_commit,.allow_rebase_merge]'`
+  → `[true,true,true]`), and GitHub preselects the method used last, so choose **Squash**
+  explicitly (`gh pr merge <n> --squash`). The only sanctioned force-push is `--force-with-lease`
+  on your own PR branch.
 - **`main` is production.** Consumers extend these presets unpinned from the default branch, so
   every merge to `main` is immediately live for all consumers — merge accordingly.
 - **No secrets committed** — placeholders only.
