@@ -26,5 +26,5 @@ production**: every merge is live at once for every consumer's dependency automa
 
 ## Reserved to the maintainer (escalate, do not decide)
 
-A breaking change to a preset's public contract · edits to this contract · opening a private repo
-to the public · spend or scope decisions.
+A breaking change to a preset's public contract · opening a private repo to the public · spend or
+scope decisions.
