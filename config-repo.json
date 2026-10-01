@@ -41,6 +41,16 @@
         "pinDigest"
       ],
       "automerge": true
+    },
+    {
+      "description": "The shared CI and merge-gate machinery (igonzalezespi-apps/studio-ci) stays human here too, after the scoped github-actions automerge above.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "igonzalezespi-apps/studio-ci"
+      ],
+      "automerge": false
     }
   ]
 }

@@ -176,6 +176,18 @@
         "node"
       ],
       "groupName": "node"
+    },
+    {
+      "description": "The shared CI and merge-gate machinery (igonzalezespi-apps/studio-ci) is never automerged and never rides in the github-actions group: a new pin can change what decides an automatic merge in every consumer (riesgo-3, the owner's). Its own PR, a person merges it. Not labelled revision-humana on purpose: Renovate rewrites the body and a TL;DR check would stay red.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "igonzalezespi-apps/studio-ci"
+      ],
+      "groupName": "studio-ci",
+      "groupSlug": "studio-ci",
+      "automerge": false
     }
   ]
 }
