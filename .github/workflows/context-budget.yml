@@ -1,0 +1,60 @@
+# Lo que Claude Code carga en cada sesion (CLAUDE.md, estilo de salida, descripciones de skills y
+# agentes) tiene presupuesto, y la configuracion que decide QUE se carga tiene que resolver a algo
+# que existe: un `outputStyle` que no resuelve cae a Default sin avisar. Lo mide la accion
+# `context-budget` de studio-ci (plan maestro E5.1b).
+#
+# SOLO AVISO por ahora: el modo y lo que se aparta de los valores de fabrica, con su porque, estan
+# en `.github/context-budget.json`, y no en este fichero, para que una ejecucion local
+# (`context-budget.sh --root .`) de lo mismo que la CI. Pasar a bloqueante es cambiar ahi una
+# palabra.
+#
+# La etiqueta `presupuesto-contexto-aprobado` (la pone una persona) convierte un exceso de
+# PRESUPUESTO en aviso aprobado; un error de configuracion no tiene valvula. Por eso escucha
+# `labeled`/`unlabeled`, y las etiquetas se leen EN VIVO por la API y no del payload del evento (lo
+# que la accion usaria por defecto): los runs de una PR no se crean en el orden de sus eventos, y el
+# posterior puede traer la foto de `opened`, sin la etiqueta. Si la API no contesta, no hay
+# aprobacion: leer mal nunca afloja el control.
+#
+# `ubuntu-latest` fijo, NUNCA `vars.RUNNER_TARGET`: este repo es publico, y una PR desde un fork
+# ejecuta su propia version del workflow en la maquina que esta nombre. SIN `concurrency`, como
+# pr-tldr.yml: `opened` y `labeled` llegan casi a la vez, y cancelar el primero fabrica un check
+# rojo que no corresponde a ningun fallo.
+name: context-budget
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  context-budget:
+    name: context-budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Etiquetas de la PR, leidas en vivo
+        id: etiquetas
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -uo pipefail
+          labels=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                     "https://api.github.com/repos/$REPO/issues/$PR/labels?per_page=100" 2>/dev/null \
+                   | jq -r 'if type == "array" then [.[].name] | join(",") else empty end' 2>/dev/null || true)
+          echo "Etiquetas de la PR: ${labels:-ninguna (o la API no contesto)}"
+          echo "labels=$labels" >> "$GITHUB_OUTPUT"
+
+      - name: El contexto cabe en su presupuesto y la configuracion resuelve
+        uses: igonzalezespi-apps/studio-ci/context-budget@de6c01692b9d225205f771c4a8f95a2e15176cd1 # v0.8.2
+        with:
+          labels: ${{ steps.etiquetas.outputs.labels }}
