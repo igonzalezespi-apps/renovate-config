@@ -55,6 +55,6 @@ jobs:
           echo "labels=$labels" >> "$GITHUB_OUTPUT"
 
       - name: El contexto cabe en su presupuesto y la configuracion resuelve
-        uses: igonzalezespi-apps/studio-ci/context-budget@a9e9d92b63ec8353646510a3112e0a03eee72c02 # v0.11.1
+        uses: igonzalezespi-apps/studio-ci/context-budget@0f8ad32bddc3245a0522820c6994834d11dcb122 # v0.11.2
         with:
           labels: ${{ steps.etiquetas.outputs.labels }}
