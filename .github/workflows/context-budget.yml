@@ -3,10 +3,10 @@
 # que existe: un `outputStyle` que no resuelve cae a Default sin avisar. Lo mide la accion
 # `context-budget` de studio-ci (plan maestro E5.1b).
 #
-# SOLO AVISO por ahora: el modo y lo que se aparta de los valores de fabrica, con su porque, estan
-# en `.github/context-budget.json`, y no en este fichero, para que una ejecucion local
-# (`context-budget.sh --root .`) de lo mismo que la CI. Pasar a bloqueante es cambiar ahi una
-# palabra.
+# BLOQUEANTE: main da 0 violaciones y 0 avisos. El modo y lo que se aparta de los valores de
+# fabrica, con su porque, estan en `.github/context-budget.json`, y no en este fichero, para que una
+# ejecucion local (`context-budget.sh --root .`) de lo mismo que la CI. Los dos ficheros estan en
+# `reserved_paths_hard` del guard: aflojar este control lo decide el mantenedor.
 #
 # La etiqueta `presupuesto-contexto-aprobado` (la pone una persona) convierte un exceso de
 # PRESUPUESTO en aviso aprobado; un error de configuracion no tiene valvula. Por eso escucha
@@ -55,6 +55,6 @@ jobs:
           echo "labels=$labels" >> "$GITHUB_OUTPUT"
 
       - name: El contexto cabe en su presupuesto y la configuracion resuelve
-        uses: igonzalezespi-apps/studio-ci/context-budget@de6c01692b9d225205f771c4a8f95a2e15176cd1 # v0.8.2
+        uses: igonzalezespi-apps/studio-ci/context-budget@a9e9d92b63ec8353646510a3112e0a03eee72c02 # v0.11.1
         with:
           labels: ${{ steps.etiquetas.outputs.labels }}
