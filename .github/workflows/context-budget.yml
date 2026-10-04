@@ -16,9 +16,12 @@
 # aprobacion: leer mal nunca afloja el control.
 #
 # `ubuntu-latest` fijo, NUNCA `vars.RUNNER_TARGET`: este repo es publico, y una PR desde un fork
-# ejecuta su propia version del workflow en la maquina que esta nombre. SIN `concurrency`, como
-# pr-tldr.yml: `opened` y `labeled` llegan casi a la vez, y cancelar el primero fabrica un check
-# rojo que no corresponde a ningun fallo.
+# ejecuta su propia version del workflow en la maquina que esta nombre. SIN `concurrency`: `opened`
+# y `labeled` llegan casi a la vez, y cancelar el primero fabrica un check rojo que no corresponde a
+# ningun fallo; asi cada evento de la PR corre su run entera. pr-tldr.yml, que antes iba igual, lleva
+# `concurrency` desde el 2026-10-04: `opened`/`synchronize` comparten grupo por PR y cancelan (lo
+# cancelado es un commit que ya no es la cabeza), y cualquier otro evento de la PR va a un grupo por
+# PR y commit sin cancelar la run que ya corre. Esa forma no se ha traido aqui.
 name: context-budget
 
 on:
