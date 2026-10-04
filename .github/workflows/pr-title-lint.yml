@@ -2,6 +2,18 @@ name: pr-title-lint
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+# Concurrency (studio#276): solo se cancela lo que un commit NUEVO deja viejo.
+#   - `opened` y `synchronize` comparten un grupo por PR y cancelan la run en curso: la cancelada
+#     es la de un commit que ya no es la cabeza.
+#   - Los demas eventos de PR (`reopened`, `labeled`, `edited`...) van a un grupo por PR y commit
+#     SIN cancelar: nunca matan la run en curso ni la del commit nuevo. Si GitHub descarta una run
+#     PENDIENTE del grupo, sale `cancelled` sin jobs y no deja check en la cabeza.
+#   - Push, `workflow_dispatch` y `schedule` van a un grupo por run: nadie los cancela, y cada
+#     commit de develop/main tiene su CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && (contains(fromJSON('["opened","synchronize"]'), github.event.action) && format('pr-{0}', github.event.pull_request.number) || format('pr-{0}-{1}', github.event.pull_request.number, github.event.pull_request.head.sha)) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize"]'), github.event.action) }}
+
 permissions:
   pull-requests: read
 jobs:
