@@ -77,7 +77,7 @@ that disallows squash merges) are **added in that repo's own `renovate.json`** a
 |---|---|---|
 | Base | `config:recommended` + `:dependencyDashboard` + `:semanticCommits` + `group:monorepos` | `config:recommended` already pulls in the dashboard and monorepo grouping; they are listed explicitly so the policy is readable without expanding presets |
 | Timezone | `Europe/Madrid` | |
-| Schedule | cron `* * * * 1` — all of Monday | A narrow window risks the bot run never landing inside it, and a PR that is never created cannot automerge |
+| Schedule | cron `* * * * 2` — all of Tuesday | A narrow window risks the bot run never landing inside it, and a PR that is never created cannot automerge |
 | Cooldown | `minimumReleaseAge: 7 days` + `internalChecksFilter: strict` | `strict` withholds the PR until the cooldown is met instead of opening it pending |
 | Security updates | **not** delayed | `vulnerabilityAlerts` sets `minimumReleaseAge: null` explicitly (it is also the default, but stated so nobody tidies it away), plus `prCreation: immediate` and a rate-limit bypass. Delaying a fix for a known CVE would invert the cooldown into a brake on the one update that must land fastest — do not relax the global cooldown believing security needs it |
 | Dependency PRs target | **`develop`** | `main` is the reviewed/released line. The `config-repo` profile inherits it too (it only tightens automerge). A repo that really is trunk→main — this one — overrides `baseBranchPatterns` in its own file |
