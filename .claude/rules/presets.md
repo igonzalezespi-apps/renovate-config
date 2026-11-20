@@ -14,7 +14,8 @@ paths:
   `config-repo.json` extends it for the config and tooling repos and overrides only the automerge
   posture: it inherits `develop` and must not re-pin a base branch.
 - `renovate.json` governs this repo only: it extends `default.json` (not `config-repo`), pins
-  `main`, keeps every bump for human review, and none of its managers touches the presets.
+  `main`, automerges only non-major bumps of the CI validator and the actions (majors get human
+  review), and none of its managers touches the presets.
 - Prefer additive, opt-in changes: a rule that silently alters every consumer's automation is a
   breaking change and belongs to the maintainer.
 - Validate before pushing, as CI does, with the `renovate` pinned in `package.json`
